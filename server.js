@@ -190,11 +190,11 @@ const response = await axios({
   params: {
     api_key: process.env.ROBOFLOW_API_KEY,
   },
-  data: `image=${base64Data}`, // ✅ FIXED
+  data: `image=${encodeURIComponent(base64Data)}`, // 🔥 FIX
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
   },
-  timeout: 15000,
+  timeout: 20000,
 });
 
     const predictions = response.data.predictions || [];
@@ -239,9 +239,12 @@ const response = await axios({
 
     res.json(result);
   } catch (err) {
-    console.error("Analysis error:", err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  console.error("FULL ERROR:", err.response?.data || err.message);
+  res.status(500).json({
+    success: false,
+    error: err.response?.data || err.message,
+  });
+}
 });
 
 // ─────────────────────────────────────────
