@@ -56,8 +56,8 @@ async function loadModel() {
   if (!classifier) {
     console.log("Loading AI model...");
     classifier = await pipeline(
-      "image-classification",
-      "Xenova/clip-vit-base-patch16"
+      "zero-shot-image-classification",
+      "Xenova/clip-vit-base-patch32"
     );
     console.log("AI model loaded");
   }
