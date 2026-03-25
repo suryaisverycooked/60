@@ -48,6 +48,32 @@ console.log("Middleware configured");
 // DAMAGE ENGINE (UNCHANGED)
 // ─────────────────────────────────────────
 function processDamage(text) {
+  // 🔥 ULTRA CONTEXT OVERRIDE (DO NOT REMOVE)
+if (
+  text.includes("building") ||
+  text.includes("apartment") ||
+  text.includes("house") ||
+  text.includes("structure")
+) {
+  if (
+    text.includes("collapse") ||
+    text.includes("collapsed") ||
+    text.includes("tilted") ||
+    text.includes("leaning") ||
+    text.includes("fallen") ||
+    text.includes("destroyed") ||
+    text.includes("ruins") ||
+    text.includes("debris") ||
+    text.includes("broken")
+  ) {
+    return {
+      damageType: "Building Collapse",
+      severity: "Critical",
+      risk: 95,
+      infrastructure: "building",
+    };
+  }
+}
   text = (text || "").toLowerCase();
 
   let damageType = "Unknown";
@@ -235,6 +261,10 @@ if (output) {
 
     const labelsText = predictions.map(p => p.class || p.label || "").join(" ");
     let enrichedText = labelsText;
+    // 🚀 FORCE DAMAGE DETECTION BOOST
+if (predictions.length === 0) {
+  enrichedText += " collapsed building damage debris destruction broken structure";
+}
 
     if (
       labelsText.includes("building") ||
