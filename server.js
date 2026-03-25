@@ -203,21 +203,33 @@ app.post("/api/analyze", async (req, res) => {
 
     // 🔥 SAFE EXTRACTION (FIXED)
     // 🔥 SAFE EXTRACTION (FINAL FIX)
+// 🔥 FINAL WORKFLOW PARSER (100% FIX)
 let predictions = [];
+
 const output = response.data?.outputs?.[0];
 
 if (output) {
-  const raw =
+  // 1. Detection results
+  const detections =
     output?.model_predictions?.predictions ||
-    output?.predictions ||
     output?.detections ||
     [];
 
-  // ✅ Ensure always array
-  if (Array.isArray(raw)) {
-    predictions = raw;
-  } else if (typeof raw === "object") {
-    predictions = Object.values(raw);
+  // 2. Classification result
+  const classification =
+    output?.classification ||
+    output?.classification_model ||
+    {};
+
+  if (Array.isArray(detections) && detections.length > 0) {
+    predictions = detections;
+  } else if (classification?.top) {
+    predictions = [
+      {
+        class: classification.top,
+        confidence: classification.confidence || 0.7,
+      },
+    ];
   }
 }
 
