@@ -57,7 +57,7 @@ async function loadModel() {
     console.log("Loading AI model...");
     classifier = await pipeline(
       "image-classification",
-      "Xenova/resnet-50"
+      "Xenova/efficientnet_b0-finetuned-damage-detection"
     );
     console.log("AI model loaded");
   }
