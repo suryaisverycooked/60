@@ -57,7 +57,7 @@ async function loadModel() {
     console.log("Loading AI model...");
     classifier = await pipeline(
       "image-classification",
-      "Xenova/efficientnet_b0"
+      "Xenova/clip-vit-base-patch16"
     );
     console.log("AI model loaded");
   }
