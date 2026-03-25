@@ -4,11 +4,9 @@ const reportSchema = new mongoose.Schema(
   {
     // Unique report ID (keep your existing format)
     reportId: {
-      type: String,
-      required: true,
-      unique: true,
-      default: () => `rpt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    },
+  type: String,
+  default: () => `rpt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+},
 
     // Timestamp
     timestamp: {
