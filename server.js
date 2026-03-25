@@ -182,16 +182,19 @@ app.post("/api/analyze", async (req, res) => {
 
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
+console.log("Base64 length:", base64Data.length);
+
 const response = await axios({
   method: "POST",
   url: "https://serverless.roboflow.com/infrastructure-defects-detection/4",
   params: {
     api_key: process.env.ROBOFLOW_API_KEY,
   },
-  data: base64Data,
+  data: `image=${base64Data}`, // ✅ FIXED
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
   },
+  timeout: 15000,
 });
 
     const predictions = response.data.predictions || [];
@@ -223,7 +226,7 @@ const response = await axios({
     if (saveReport && Report) {
       try {
         const report = new Report({
-          reportId: `ai_${Date.now()}`,
+          reportId: `ai_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
           timestamp: Date.now(),
           location,
           imageBase64: image,
