@@ -186,7 +186,7 @@ console.log("Base64 length:", base64Data.length);
 
 const response = await axios({
   method: "POST",
-  url: "https://serverless.roboflow.com/infrastructure-defects-detection/4",
+  url: "https://serverless.roboflow.com/suryas-workspace-drpwr/workflows/detect-and-classify",
   params: {
     api_key: process.env.ROBOFLOW_API_KEY,
   },
