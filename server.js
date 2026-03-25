@@ -180,17 +180,19 @@ app.post("/api/analyze", async (req, res) => {
 
     console.log("Running Roboflow AI analysis...");
 
-    const response = await axios({
-      method: "POST",
-      url: "https://serverless.roboflow.com/infrastructure-defects-detection/4",
-      params: {
-        api_key: process.env.ROBOFLOW_API_KEY,
-      },
-      data: `image=${encodeURIComponent(image)}`,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+
+const response = await axios({
+  method: "POST",
+  url: "https://serverless.roboflow.com/infrastructure-defects-detection/4",
+  params: {
+    api_key: process.env.ROBOFLOW_API_KEY,
+  },
+  data: base64Data,
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded",
+  },
+});
 
     const predictions = response.data.predictions || [];
 
