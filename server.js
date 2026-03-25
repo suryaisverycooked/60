@@ -75,39 +75,106 @@ function processDamage(text) {
   let score = 10;
   let infrastructure = "Unknown";
 
-  if (text.includes("electric") || text.includes("pole") || text.includes("wire")) {
+  // 🔥 ELECTRICAL / UTILITIES
+  if (text.includes("electric") || text.includes("pole") || text.includes("wire") || text.includes("tower")) {
     damageType = "Power Infrastructure Damage";
     infrastructure = "utilities";
     score = 90;
-  } else if (text.includes("flood") || text.includes("water")) {
+  }
+
+  // 🌊 FLOOD / WATER
+  else if (text.includes("flood") || text.includes("water") || text.includes("overflow") || text.includes("drain")) {
     damageType = "Flooding / Waterlogging";
     infrastructure = "drainage";
     score = 85;
-  } else if (text.includes("pothole")) {
-    damageType = "Pothole";
-    infrastructure = "road";
-    score = 60;
-  } else if (text.includes("crack")) {
-    damageType = "Crack Damage";
-    infrastructure = "road/bridge";
-    score = 50;
-  } else if (text.includes("bridge")) {
-    damageType = "Bridge Damage";
-    infrastructure = "bridge";
-    score = 70;
-  } else if (text.includes("building")) {
+  }
+
+  // 🏚 BUILDING COLLAPSE / DAMAGE
+  else if (
+    text.includes("collapsed") ||
+    text.includes("ruins") ||
+    text.includes("destroyed") ||
+    text.includes("damaged building") ||
+    text.includes("debris")
+  ) {
+    damageType = "Building Collapse";
+    infrastructure = "building";
+    score = 95;
+  }
+
+  // 🏢 BUILDING GENERAL
+  else if (text.includes("building") || text.includes("apartment") || text.includes("house")) {
     damageType = "Building Damage";
     infrastructure = "building";
     score = 70;
-  } else if (text.includes("tree")) {
-    damageType = "Fallen Tree";
-    infrastructure = "roadside";
+  }
+
+  // 🛣 ROAD DAMAGE
+  else if (text.includes("pothole")) {
+    damageType = "Pothole";
+    infrastructure = "road";
+    score = 65;
+  }
+
+  else if (text.includes("crack") || text.includes("broken road")) {
+    damageType = "Road Crack";
+    infrastructure = "road";
     score = 55;
   }
 
+  // 🌉 BRIDGE
+  else if (text.includes("bridge") || text.includes("overpass")) {
+    damageType = "Bridge Damage";
+    infrastructure = "bridge";
+    score = 75;
+  }
+
+  // 🌳 TREE
+  else if (text.includes("tree") || text.includes("fallen")) {
+    damageType = "Fallen Tree";
+    infrastructure = "roadside";
+    score = 50;
+  }
+
+  // 🚧 CONSTRUCTION / DEBRIS
+  else if (text.includes("debris") || text.includes("rubble")) {
+    damageType = "Debris Obstruction";
+    infrastructure = "road";
+    score = 60;
+  }
+
+  // 🚗 VEHICLE DAMAGE (optional detection)
+  else if (text.includes("car") || text.includes("vehicle") || text.includes("truck")) {
+    damageType = "Accident / Vehicle Damage";
+    infrastructure = "road";
+    score = 70;
+  }
+
+  // 🔥 FIRE DAMAGE
+  else if (text.includes("fire") || text.includes("burnt") || text.includes("smoke")) {
+    damageType = "Fire Damage";
+    infrastructure = "building";
+    score = 90;
+  }
+
+  // ⚠️ FALLBACK (SMART DEFAULT)
+  if (damageType === "Unknown") {
+    if (text.includes("building") || text.includes("structure")) {
+      damageType = "Possible Structural Damage";
+      infrastructure = "building";
+      score = 50;
+    } else if (text.includes("road") || text.includes("street")) {
+      damageType = "Possible Road Damage";
+      infrastructure = "road";
+      score = 40;
+    }
+  }
+
+  // 🎯 SEVERITY LOGIC
   if (score >= 85) severity = "Critical";
   else if (score >= 60) severity = "High";
   else if (score >= 40) severity = "Moderate";
+  else severity = "Low";
 
   return { damageType, severity, risk: score, infrastructure };
 }
@@ -141,10 +208,13 @@ app.post("/api/analyze", async (req, res) => {
       "normal road"
     ];
 
-    const result = await classifier(filePath, labels);
+    const result = await classifier(filePath);
 
-    const top = result[0];
-    const processed = processDamage(top.label);
+// 🔥 Combine all labels for better understanding
+const labelsText = result.map(r => r.label).join(" ");
+
+const top = result[0];
+const processed = processDamage(labelsText);
 
     fs.unlinkSync(filePath);
 
