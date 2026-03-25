@@ -36,17 +36,9 @@ const reportSchema = new mongoose.Schema(
     // AI Analysis Results
     analysis: {
       damageType: {
-        type: String,
-        enum: [
-          "Pothole",
-          "Surface Crack",
-          "Bridge Crack",
-          "Structural Collapse",
-          "Unknown",
-          "No Damage",
-        ],
-        default: "Unknown",
-      },
+  type: String,
+  default: "Unknown",
+},
       severity: {
         type: String,
         enum: ["Low", "Moderate", "High", "Critical"],
@@ -59,10 +51,9 @@ const reportSchema = new mongoose.Schema(
         default: 0,
       },
       infrastructure: {
-        type: String,
-        enum: ["road", "bridge", "building", "Unknown"],
-        default: "Unknown",
-      },
+  type: String,
+  default: "Unknown",
+},
       caption: { type: String, default: "" },
     },
 
