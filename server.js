@@ -57,7 +57,7 @@ async function loadModel() {
     console.log("Loading AI model...");
     classifier = await pipeline(
       "image-classification",
-      "Xenova/mobilenetv2"
+      "Xenova/squeezenet-1.1"
     );
     console.log("AI model loaded");
   }
