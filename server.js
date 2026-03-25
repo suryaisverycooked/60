@@ -184,20 +184,26 @@ app.post("/api/analyze", async (req, res) => {
 
 console.log("Base64 length:", base64Data.length);
 
-const response = await axios({
-  method: "POST",
-  url: "https://serverless.roboflow.com/suryas-workspace-drpwr/workflows/detect-and-classify",
-  params: {
+const response = await axios.post(
+  "https://serverless.roboflow.com/suryas-workspace-drpwv/detect-and-classify",
+  {
     api_key: process.env.ROBOFLOW_API_KEY,
+    inputs: {
+      image: {
+        type: "base64",
+        value: base64Data,
+      },
+    },
   },
-  data: `image=${encodeURIComponent(base64Data)}`, // 🔥 FIX
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  timeout: 20000,
-});
+  {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    timeout: 20000,
+  }
+);
 
-    const predictions = response.data.predictions || [];
+    const predictions = response.data?.outputs?.[0].predictions || [];
 
     const labelsText = predictions.map(p => p.class).join(" ");
     let enrichedText = labelsText;
