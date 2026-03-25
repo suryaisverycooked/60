@@ -103,11 +103,29 @@ function processDamage(text) {
   }
 
   // 🏢 BUILDING GENERAL
-  else if (text.includes("building") || text.includes("apartment") || text.includes("house")) {
+  else if (
+  text.includes("building") ||
+  text.includes("apartment") ||
+  text.includes("house") ||
+  text.includes("structure")
+) {
+  // 🔥 CRITICAL: detect collapse properly
+  if (
+    text.includes("collapsed") ||
+    text.includes("ruins") ||
+    text.includes("debris") ||
+    text.includes("destroyed") ||
+    text.includes("broken")
+  ) {
+    damageType = "Building Collapse";
+    infrastructure = "building";
+    score = 95;
+  } else {
     damageType = "Building Damage";
     infrastructure = "building";
     score = 70;
   }
+}
 
   // 🛣 ROAD DAMAGE
   else if (text.includes("pothole")) {
@@ -156,7 +174,20 @@ function processDamage(text) {
     infrastructure = "building";
     score = 90;
   }
-
+  // 🔥 GLOBAL DAMAGE DETECTOR (VERY IMPORTANT)
+if (
+  text.includes("damage") ||
+  text.includes("broken") ||
+  text.includes("collapsed") ||
+  text.includes("destroyed") ||
+  text.includes("debris")
+) {
+  if (infrastructure === "Unknown") {
+    damageType = "General Structural Damage";
+    infrastructure = "building";
+    score = Math.max(score, 80);
+  }
+}
   // ⚠️ FALLBACK (SMART DEFAULT)
   if (damageType === "Unknown") {
     if (text.includes("building") || text.includes("structure")) {
@@ -214,7 +245,25 @@ app.post("/api/analyze", async (req, res) => {
 const labelsText = result.map(r => r.label).join(" ");
 
 const top = result[0];
-const processed = processDamage(labelsText);
+let enrichedText = labelsText;
+
+// 🔥 DAMAGE BOOST (VERY IMPORTANT)
+// 🔥 SMART DAMAGE BOOST (UPGRADED)
+if (
+  labelsText.includes("building") ||
+  labelsText.includes("house") ||
+  labelsText.includes("apartment") ||
+  labelsText.includes("structure")
+) {
+  enrichedText += " collapsed damaged broken debris ruins destroyed disaster destruction";
+}
+
+// extra boost for low confidence
+if (top.score < 0.6) {
+  enrichedText += " damage broken crack hazard unsafe";
+}
+
+const processed = processDamage(enrichedText);
 
     fs.unlinkSync(filePath);
 
