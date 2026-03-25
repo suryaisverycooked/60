@@ -202,18 +202,24 @@ app.post("/api/analyze", async (req, res) => {
     );
 
     // 🔥 SAFE EXTRACTION (FIXED)
-    let predictions = [];
-    const output = response.data?.outputs?.[0];
+    // 🔥 SAFE EXTRACTION (FINAL FIX)
+let predictions = [];
+const output = response.data?.outputs?.[0];
 
-    if (output) {
-      if (output.predictions) {
-        predictions = output.predictions;
-      } else if (output.detections) {
-        predictions = output.detections;
-      } else if (Array.isArray(output)) {
-        predictions = output;
-      }
-    }
+if (output) {
+  const raw =
+    output?.model_predictions?.predictions ||
+    output?.predictions ||
+    output?.detections ||
+    [];
+
+  // ✅ Ensure always array
+  if (Array.isArray(raw)) {
+    predictions = raw;
+  } else if (typeof raw === "object") {
+    predictions = Object.values(raw);
+  }
+}
 
     const labelsText = predictions.map(p => p.class || p.label || "").join(" ");
     let enrichedText = labelsText;
