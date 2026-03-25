@@ -183,7 +183,7 @@ app.post("/api/analyze", async (req, res) => {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
     const response = await axios.post(
-      "https://serverless.roboflow.com/suryas-workspace-drpwv/detect-and-classify",
+      "https://serverless.roboflow.com/suryas-workspace-drpwr/workflows/detect-and-classify",
       {
         api_key: process.env.ROBOFLOW_API_KEY,
         inputs: {
