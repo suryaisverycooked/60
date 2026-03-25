@@ -6,7 +6,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const axios = require("axios"); // ✅ ADDED
+const axios = require("axios");
 
 const fs = require("fs");
 const path = require("path");
@@ -168,7 +168,7 @@ function processDamage(text) {
 }
 
 // ─────────────────────────────────────────
-// ANALYZE ROUTE (ONLY THIS CHANGED)
+// ANALYZE ROUTE (FIXED)
 // ─────────────────────────────────────────
 app.post("/api/analyze", async (req, res) => {
   try {
@@ -182,30 +182,40 @@ app.post("/api/analyze", async (req, res) => {
 
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
-console.log("Base64 length:", base64Data.length);
-
-const response = await axios.post(
-  "https://serverless.roboflow.com/suryas-workspace-drpwv/detect-and-classify",
-  {
-    api_key: process.env.ROBOFLOW_API_KEY,
-    inputs: {
-      image: {
-        type: "base64",
-        value: base64Data,
+    const response = await axios.post(
+      "https://serverless.roboflow.com/suryas-workspace-drpwv/detect-and-classify",
+      {
+        api_key: process.env.ROBOFLOW_API_KEY,
+        inputs: {
+          image: {
+            type: "base64",
+            value: base64Data,
+          },
+        },
       },
-    },
-  },
-  {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    timeout: 20000,
-  }
-);
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
+      }
+    );
 
-    const predictions = response.data?.outputs?.[0].predictions || [];
+    // 🔥 SAFE EXTRACTION (FIXED)
+    let predictions = [];
+    const output = response.data?.outputs?.[0];
 
-    const labelsText = predictions.map(p => p.class).join(" ");
+    if (output) {
+      if (output.predictions) {
+        predictions = output.predictions;
+      } else if (output.detections) {
+        predictions = output.detections;
+      } else if (Array.isArray(output)) {
+        predictions = output;
+      }
+    }
+
+    const labelsText = predictions.map(p => p.class || p.label || "").join(" ");
     let enrichedText = labelsText;
 
     if (
@@ -221,10 +231,12 @@ const response = await axios.post(
 
     const processed = processDamage(enrichedText);
 
+    const top = predictions[0] || {};
+
     const result = {
       success: true,
-      caption: predictions[0]?.class || "unknown",
-      confidence: predictions[0]?.confidence || 0,
+      caption: top.class || top.label || "unknown",
+      confidence: top.confidence || top.score || 0,
       predictions,
       ...processed,
     };
@@ -244,13 +256,14 @@ const response = await axios.post(
     }
 
     res.json(result);
+
   } catch (err) {
-  console.error("FULL ERROR:", err.response?.data || err.message);
-  res.status(500).json({
-    success: false,
-    error: err.response?.data || err.message,
-  });
-}
+    console.error("FULL ERROR:", err.response?.data || err.message);
+    res.status(500).json({
+      success: false,
+      error: err.response?.data || err.message,
+    });
+  }
 });
 
 // ─────────────────────────────────────────
