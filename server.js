@@ -208,24 +208,15 @@ app.post("/api/analyze", async (req, res) => {
 
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
-    const response = await axios.post(
-      "https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=1IyZhbzCNeGvs2pKSSYw",
-      {
-        api_key: process.env.ROBOFLOW_API_KEY,
-        inputs: {
-          image: {
-            type: "base64",
-            value: base64Data,
-          },
-        },
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 20000,
-      }
-    );
+    const response = await axios({
+  method: "POST",
+  url: `https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=1IyZhbzCNeGvs2pKSSYw`,
+  data: base64Data, // ✅ PURE BASE64 ONLY
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  timeout: 20000,
+});
 
     // 🔥 SAFE EXTRACTION (FIXED)
     // 🔥 SAFE EXTRACTION (FINAL FIX)
