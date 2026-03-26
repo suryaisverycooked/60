@@ -209,64 +209,31 @@ app.post("/api/analyze", async (req, res) => {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
     const response = await axios({
-  method: "POST",
-  url: `https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=1IyZhbzCNeGvs2pKSSYw`,
-  data: base64Data, // ✅ PURE BASE64 ONLY
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded"
-  },
-  timeout: 20000,
-});
-
-    // 🔥 SAFE EXTRACTION (FIXED)
-    // 🔥 SAFE EXTRACTION (FINAL FIX)
-// 🔥 FINAL WORKFLOW PARSER (100% FIX)
-let predictions = [];
-
-const output = response.data?.outputs?.[0];
-
-if (output) {
-  // 1. Detection results
-  const detections =
-    output?.model_predictions?.predictions ||
-    output?.detections ||
-    [];
-
-  // 2. Classification result
-  const classification =
-    output?.classification ||
-    output?.classification_model ||
-    {};
-
-  if (Array.isArray(detections) && detections.length > 0) {
-    predictions = detections;
-  } else if (classification?.top) {
-    predictions = [
-      {
-        class: classification.top,
-        confidence: classification.confidence || 0.7,
+      method: "POST",
+      url: `https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=${process.env.ROBOFLOW_API_KEY}`,
+      data: base64Data,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
       },
-    ];
-  }
-}
+      timeout: 20000,
+    });
 
-    const labelsText = predictions.map(p => p.class || p.label || "").join(" ");
-    let enrichedText = labelsText;
-    // 🚀 FORCE DAMAGE DETECTION BOOST
-if (predictions.length === 0) {
-  enrichedText += " collapsed building damage debris destruction broken structure";
-}
+    // ✅ FIXED PARSER FOR SERVERLESS RESPONSE
+    let predictions = [];
 
-    if (
-      labelsText.includes("building") ||
-      labelsText.includes("structure")
-    ) {
-      enrichedText += " collapsed damaged broken debris ruins destroyed disaster";
+    if (response.data?.predictions) {
+      predictions = Object.entries(response.data.predictions).map(
+        ([label, obj]) => ({
+          class: label,
+          confidence: obj.confidence,
+        })
+      );
     }
 
-    if (predictions.length === 0) {
-      enrichedText += " damage broken crack hazard unsafe";
-    }
+    const labelsText = predictions.map(p => p.class || "").join(" ");
+
+    // ✅ NO FAKE DAMAGE INJECTION (FIXED)
+    let enrichedText = labelsText || "unknown";
 
     const processed = processDamage(enrichedText);
 
@@ -274,8 +241,8 @@ if (predictions.length === 0) {
 
     const result = {
       success: true,
-      caption: top.class || top.label || "unknown",
-      confidence: top.confidence || top.score || 0,
+      caption: top.class || "unknown",
+      confidence: top.confidence || 0,
       predictions,
       ...processed,
     };
