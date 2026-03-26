@@ -1,17 +1,14 @@
-// server.js — FINAL WORKING VERSION (Roboflow Integrated)
+// server.js — FINAL VERSION (Roboflow + Label Mapping + Stable)
 
 console.log("Starting server...");
 
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-
 const axios = require("axios");
 
-const fs = require("fs");
-const path = require("path");
-
 const app = express();
+
 app.use(
   cors({
     origin: [
@@ -23,7 +20,7 @@ app.use(
 );
 
 // ─────────────────────────────────────────
-// DB + MODEL LOADING
+// DB SETUP
 // ─────────────────────────────────────────
 let connectDB;
 try {
@@ -42,148 +39,168 @@ try {
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-console.log("Middleware configured");
+// ─────────────────────────────────────────
+// 🎯 ROBOFLOW LABEL → TEXT MAPPING
+// ─────────────────────────────────────────
+function mapRoboflowLabels(predictions) {
+  if (!predictions.length) return "no damage clean";
+
+  let text = "";
+
+  predictions.forEach(p => {
+    switch (p.class) {
+      case "building_collapsed":
+        text += " collapsed building debris destroyed ";
+        break;
+
+      case "building_weardown":
+        text += " damaged building cracks broken ";
+        break;
+
+      case "building_clean":
+        text += " clean building ";
+        break;
+
+      case "road_crack":
+        text += " crack road ";
+        break;
+
+      case "road_damage":
+        text += " broken road damage ";
+        break;
+
+      case "road_clean":
+        text += " clean road ";
+        break;
+
+      case "bridge_damage":
+      case "bridge_fragile":
+        text += " damaged bridge ";
+        break;
+
+      case "flooding":
+        text += " flood water ";
+        break;
+
+      case "drainage_problem":
+        text += " drainage overflow water ";
+        break;
+
+      case "fire_damage":
+      case "smoke":
+        text += " fire smoke burn ";
+        break;
+
+      case "vehicle_damage":
+        text += " vehicle accident ";
+        break;
+
+      case "railway_bad":
+        text += " damaged railway ";
+        break;
+
+      case "tunnel_damage":
+        text += " damaged tunnel ";
+        break;
+
+      case "no_damage":
+      case "railway_good":
+      case "tunnel_good":
+        text += " no damage clean ";
+        break;
+
+      case "landfill":
+        text += " debris garbage ";
+        break;
+
+      case "Unrelated":
+        text += " unknown ";
+        break;
+
+      default:
+        text += p.class + " ";
+    }
+  });
+
+  return text.trim();
+}
 
 // ─────────────────────────────────────────
 // DAMAGE ENGINE (UNCHANGED)
 // ─────────────────────────────────────────
 function processDamage(text) {
-  // 🔥 ULTRA CONTEXT OVERRIDE (DO NOT REMOVE)
-if (
-  text.includes("building") ||
-  text.includes("apartment") ||
-  text.includes("house") ||
-  text.includes("structure")
-) {
-  if (
-    text.includes("collapse") ||
-    text.includes("collapsed") ||
-    text.includes("tilted") ||
-    text.includes("leaning") ||
-    text.includes("fallen") ||
-    text.includes("destroyed") ||
-    text.includes("ruins") ||
-    text.includes("debris") ||
-    text.includes("broken")
-  ) {
-    return {
-      damageType: "Building Collapse",
-      severity: "Critical",
-      risk: 95,
-      infrastructure: "building",
-    };
-  }
-}
   text = (text || "").toLowerCase();
 
-  let damageType = "Unknown";
-  let severity = "Low";
-  let score = 10;
-  let infrastructure = "Unknown";
-
-  if (text.includes("electric") || text.includes("pole") || text.includes("wire") || text.includes("tower")) {
-    damageType = "Power Infrastructure Damage";
-    infrastructure = "utilities";
-    score = 90;
-  }
-  else if (text.includes("flood") || text.includes("water") || text.includes("overflow") || text.includes("drain")) {
-    damageType = "Flooding / Waterlogging";
-    infrastructure = "drainage";
-    score = 85;
-  }
-  else if (
-    text.includes("collapsed") ||
-    text.includes("ruins") ||
-    text.includes("destroyed") ||
-    text.includes("damaged building") ||
-    text.includes("debris")
-  ) {
-    damageType = "Building Collapse";
-    infrastructure = "building";
-    score = 95;
-  }
-  else if (
+  if (
     text.includes("building") ||
     text.includes("apartment") ||
     text.includes("house") ||
     text.includes("structure")
   ) {
     if (
+      text.includes("collapse") ||
       text.includes("collapsed") ||
+      text.includes("tilted") ||
+      text.includes("leaning") ||
+      text.includes("fallen") ||
+      text.includes("destroyed") ||
       text.includes("ruins") ||
       text.includes("debris") ||
-      text.includes("destroyed") ||
       text.includes("broken")
     ) {
-      damageType = "Building Collapse";
-      infrastructure = "building";
-      score = 95;
-    } else {
-      damageType = "Building Damage";
-      infrastructure = "building";
-      score = 70;
+      return {
+        damageType: "Building Collapse",
+        severity: "Critical",
+        risk: 95,
+        infrastructure: "building",
+      };
     }
   }
-  else if (text.includes("pothole")) {
-    damageType = "Pothole";
-    infrastructure = "road";
-    score = 65;
+
+  let damageType = "Unknown";
+  let severity = "Low";
+  let score = 10;
+  let infrastructure = "Unknown";
+
+  if (text.includes("electric") || text.includes("pole") || text.includes("wire")) {
+    damageType = "Power Infrastructure Damage";
+    infrastructure = "utilities";
+    score = 90;
   }
-  else if (text.includes("crack") || text.includes("broken road")) {
+  else if (text.includes("flood")) {
+    damageType = "Flooding";
+    infrastructure = "drainage";
+    score = 85;
+  }
+  else if (text.includes("building")) {
+    damageType = "Building Damage";
+    infrastructure = "building";
+    score = 70;
+  }
+  else if (text.includes("crack")) {
     damageType = "Road Crack";
     infrastructure = "road";
     score = 55;
   }
-  else if (text.includes("bridge") || text.includes("overpass")) {
+  else if (text.includes("road")) {
+    damageType = "Road Issue";
+    infrastructure = "road";
+    score = 50;
+  }
+  else if (text.includes("bridge")) {
     damageType = "Bridge Damage";
     infrastructure = "bridge";
     score = 75;
   }
-  else if (text.includes("tree") || text.includes("fallen")) {
-    damageType = "Fallen Tree";
-    infrastructure = "roadside";
-    score = 50;
-  }
-  else if (text.includes("debris") || text.includes("rubble")) {
-    damageType = "Debris Obstruction";
-    infrastructure = "road";
-    score = 60;
-  }
-  else if (text.includes("car") || text.includes("vehicle") || text.includes("truck")) {
-    damageType = "Accident / Vehicle Damage";
+  else if (text.includes("vehicle")) {
+    damageType = "Vehicle Damage";
     infrastructure = "road";
     score = 70;
   }
-  else if (text.includes("fire") || text.includes("burnt") || text.includes("smoke")) {
+  else if (text.includes("fire") || text.includes("smoke")) {
     damageType = "Fire Damage";
     infrastructure = "building";
     score = 90;
-  }
-
-  if (
-    text.includes("damage") ||
-    text.includes("broken") ||
-    text.includes("collapsed") ||
-    text.includes("destroyed") ||
-    text.includes("debris")
-  ) {
-    if (infrastructure === "Unknown") {
-      damageType = "General Structural Damage";
-      infrastructure = "building";
-      score = Math.max(score, 80);
-    }
-  }
-
-  if (damageType === "Unknown") {
-    if (text.includes("building")) {
-      damageType = "Possible Structural Damage";
-      infrastructure = "building";
-      score = 50;
-    } else if (text.includes("road")) {
-      damageType = "Possible Road Damage";
-      infrastructure = "road";
-      score = 40;
-    }
   }
 
   if (score >= 85) severity = "Critical";
@@ -194,7 +211,7 @@ if (
 }
 
 // ─────────────────────────────────────────
-// ANALYZE ROUTE (FIXED)
+// ANALYZE ROUTE
 // ─────────────────────────────────────────
 app.post("/api/analyze", async (req, res) => {
   try {
@@ -204,21 +221,17 @@ app.post("/api/analyze", async (req, res) => {
       return res.status(400).json({ success: false, error: "No image provided" });
     }
 
-    console.log("Running Roboflow AI analysis...");
-
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
     const response = await axios({
       method: "POST",
-      url: `https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=${process.env.ROBOFLOW_API_KEY}`,
+      url: `https://serverless.roboflow.com/my-first-project-8vzut/4?api_key=1IyZhbzCNeGvs2pKSSYw`,
       data: base64Data,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      timeout: 20000,
     });
 
-    // ✅ FIXED PARSER FOR SERVERLESS RESPONSE
     let predictions = [];
 
     if (response.data?.predictions) {
@@ -230,17 +243,15 @@ app.post("/api/analyze", async (req, res) => {
       );
     }
 
-    // 🚀 FILTER LOW CONFIDENCE NOISE
-const filtered = predictions.filter(p => (p.confidence || 0) > 0.5);
+    // ✅ FILTER LOW CONFIDENCE
+    const filtered = predictions.filter(p => (p.confidence || 0) > 0.5);
 
-const labelsText = filtered.map(p => p.class || "").join(" ");
-
-    // ✅ NO FAKE DAMAGE INJECTION (FIXED)
-    let enrichedText = labelsText || "unknown";
+    // ✅ USE ROBOfLOW LABELS PROPERLY
+    const enrichedText = mapRoboflowLabels(filtered);
 
     const processed = processDamage(enrichedText);
 
-    const top = predictions[0] || {};
+    const top = filtered[0] || predictions[0] || {};
 
     const result = {
       success: true,
@@ -267,7 +278,7 @@ const labelsText = filtered.map(p => p.class || "").join(" ");
     res.json(result);
 
   } catch (err) {
-    console.error("FULL ERROR:", err.response?.data || err.message);
+    console.error(err.response?.data || err.message);
     res.status(500).json({
       success: false,
       error: err.response?.data || err.message,
@@ -276,47 +287,16 @@ const labelsText = filtered.map(p => p.class || "").join(" ");
 });
 
 // ─────────────────────────────────────────
-// OTHER ROUTES (UNCHANGED)
+// OTHER ROUTES
 // ─────────────────────────────────────────
 app.use("/api/reports", require("./routes/reports"));
 
 app.get("/", (req, res) => {
-  res.json({ status: "running", message: "Backend live" });
+  res.json({ status: "running" });
 });
 
-app.get("/api/health", async (req, res) => {
-  const mongoose = require("mongoose");
-  res.json({
-    success: true,
-    data: {
-      server: "running",
-      database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    },
-  });
-});
-
-app.get("/api/analyze/test", (req, res) => {
-  const result = processDamage("damaged electric pole");
-  res.json({
-    success: true,
-    data: {
-      caption: "test",
-      ...result,
-      confidence: 0.95,
-    },
-  });
-});
-
-// ─────────────────────────────────────────
-// START SERVER
-// ─────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
-async function start() {
-  await connectDB().catch(() => {});
-  app.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
-  });
-}
-
-start();
+connectDB().then(() => {
+  app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+});
