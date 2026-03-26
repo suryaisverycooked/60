@@ -230,7 +230,10 @@ app.post("/api/analyze", async (req, res) => {
       );
     }
 
-    const labelsText = predictions.map(p => p.class || "").join(" ");
+    // 🚀 FILTER LOW CONFIDENCE NOISE
+const filtered = predictions.filter(p => (p.confidence || 0) > 0.5);
+
+const labelsText = filtered.map(p => p.class || "").join(" ");
 
     // ✅ NO FAKE DAMAGE INJECTION (FIXED)
     let enrichedText = labelsText || "unknown";
