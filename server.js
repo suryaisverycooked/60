@@ -14,7 +14,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://six0-og6j.onrender.com",
-      "https://front-sand-pi.vercel.app/"
+      "https://front-ten-sable.vercel.app/"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
